@@ -1,0 +1,12 @@
+{
+    "guacamoleVersion" : "*",
+    "name" : "VirtualCam Launcher Button",
+    "namespace" : "virtualcam-button",
+    "css" : [
+        "css/cam-button.css"
+    ],
+    "js" : [
+        "js/cam-button.js"
+    ]
+}
+

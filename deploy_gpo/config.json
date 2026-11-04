@@ -1,0 +1,5 @@
+{
+  "relay_url": "wss://guacamole.reload.local/cam/ws",
+  "room": "auto",
+  "token": ""
+}

@@ -1,0 +1,42 @@
+# ==============================================================================
+# Security & Credentials (CRITICAL - DO NOT COMMIT)
+# ==============================================================================
+secrets.key
+*.key
+*.pem
+*.pfx
+*.crt
+
+# ==============================================================================
+# Logs & Runtime files
+# ==============================================================================
+*.log
+*.tmp
+*.temp
+*.old
+*.bak
+*.swp
+
+# System generated and scratch scripts
+scratch/
+.system_generated/
+.user_uploaded/
+
+# ==============================================================================
+# OS & IDE metadata
+# ==============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.suo
+*.user
+
+# ==============================================================================
+# Build artifacts (optional: binaries can be tracked if distributing pre-built)
+# ==============================================================================
+# Uncomment if compiling from source in CI/CD:
+# *.exe
+# virtualcam-relay-linux
+

@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VirtualCam Sender</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .header-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      line-height: 1.3;
+      text-align: center;
+    }
+
+    .header-notice strong {
+      color: #e2e8f0;
+    }
+
+    @media (max-width: 960px) {
+      .header-notice {
+        font-size: 0.72rem;
+        padding: 3px 8px;
+      }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .brand-title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .brand-title p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .status-badge.waiting {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .status-badge.streaming {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .main-layout {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .video-card {
+      flex: 1;
+      min-height: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-viewport {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #000;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform: scaleX(-1);
+    }
+
+    video.no-mirror {
+      transform: scaleX(1);
+    }
+
+    .overlay-message {
+      position: absolute;
+      text-align: center;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 16px 20px;
+      background: rgba(15, 23, 42, 0.88);
+      border-radius: 12px;
+      max-width: 80%;
+      border: 1px solid var(--border);
+    }
+
+    .video-controls-bar {
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #131d31;
+      gap: 8px;
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .controls-panel {
+      flex-shrink: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1.15fr 0.95fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 1100px) {
+      .controls-panel {
+        grid-template-columns: 1fr 1fr;
+      }
+      html, body {
+        overflow-y: auto;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .controls-panel {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    select, input[type="range"], input[type="text"] {
+      width: 100%;
+      padding: 5px 8px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .stats-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+      align-content: center;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="brand-icon">📹</div>
+        <div class="brand-title">
+          <h1>VirtualCam Sender</h1>
+        </div>
+      </div>
+      <div class="header-notice">
+        <span style="color: #60a5fa; font-size: 0.95rem;">ℹ️</span>
+        <span>Keep this page open <strong>(even in the background)</strong> to maintain the virtual webcam stream active</span>
+      </div>
+      <div id="statusBadge" class="status-badge">
+        <span class="status-dot"></span>
+        <span id="statusText">Disconnected</span>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Video Preview Card -->
+      <div class="video-card">
+        <div class="video-viewport" id="viewport" title="Double-click to toggle Picture-in-Picture">
+          <video id="preview" autoplay playsinline muted></video>
+          <div id="overlayMsg" class="overlay-message">
+            Starting webcam automatically...
+          </div>
+        </div>
+        <div class="video-controls-bar">
+          <div id="actionBtnContainer" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button id="toggleBtn" class="btn btn-primary">
+              ▶ Start Webcam
+            </button>
+            <button id="pipBtn" class="btn" style="background: rgba(59, 130, 246, 0.18); border: 1px solid var(--primary); color: #fff;" title="Keep webcam floating ALWAYS ON TOP above Guacamole">
+              📌 Picture-in-Picture
+            </button>
+            <button id="popoutBtn" class="btn" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: #fff;" title="Open in a separate standalone window">
+              🪟 Popout Window
+            </button>
+          </div>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="mirrorCheck" checked>
+            <span>Mirror video</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Controls Panel (Horizontal layout below video) -->
+      <div class="controls-panel">
+        <!-- 1. Destination Target PC -->
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label for="roomSelect" style="font-size: 0.78rem; font-weight: 700; color: #60a5fa; margin: 0; display: flex; align-items: center; gap: 4px;">
+              🖥️ <span>Target PC</span>
+            </label>
+            <span id="roomOnlineBadge" style="font-size: 0.68rem; padding: 1px 6px; border-radius: 9999px; background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);">
+              Checking...
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 4px;">
+            <select id="roomSelect" style="flex: 1; font-weight: 600; font-size: 0.82rem; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; padding: 5px 8px;">
+              <option value="web03">web03 (Office PC)</option>
+              <option value="__custom__">➕ Enter other PC...</option>
+            </select>
+            <button id="refreshRoomsBtn" type="button" title="Refresh online PC list" style="background: #1e293b; border: 1px solid var(--border); color: #94a3b8; border-radius: 6px; padding: 0 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+              🔄
+            </button>
+          </div>
+
+          <div id="customRoomContainer" style="display: none;">
+            <input type="text" id="customRoomInput" placeholder="PC Name (e.g. web01)" style="width: 100%; font-size: 0.78rem; padding: 4px 8px; background: #0f172a; color: #fff; border: 1px solid #3b82f6; border-radius: 6px;">
+          </div>
+
+          <p style="font-size: 0.68rem; color: #94a3b8; margin: 0; line-height: 1.2;">
+            Stream sent <strong>exclusively</strong> to the selected PC.
+          </p>
+        </div>
+
+        <!-- 2. Webcam Device & Resolution -->
+        <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 5px;">
+          <div class="form-group" style="gap: 3px;">
+            <label for="cameraSelect" style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin: 0;">Select Webcam</label>
+            <select id="cameraSelect" style="font-size: 0.82rem; padding: 5px 8px;">
+              <option value="">Detecting cameras...</option>
+            </select>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <div class="form-group" style="gap: 2px;">
+              <label for="resolutionSelect" style="font-size: 0.7rem; color: var(--text-muted); margin: 0;">Resolution</label>
+              <select id="resolutionSelect" style="font-size: 0.78rem; padding: 4px 6px;">
+                <option value="720" selected>720p (Recommended)</option>
+                <option value="480">480p (Low bandwidth)</option>
+                <option value="1080">1080p (Full HD)</option>
+              </select>
+            </div>
+            <div class="form-group" style="gap: 2px;">
+              <label for="fpsSelect" style="font-size: 0.7rem; color: var(--text-muted); margin: 0;">Frame Rate</label>
+              <select id="fpsSelect" style="font-size: 0.78rem; padding: 4px 6px;">
+                <option value="30" selected>30 FPS (Smooth)</option>
+                <option value="24">24 FPS</option>
+                <option value="20">20 FPS</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Quality & Microphone Audio -->
+        <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 5px;">
+          <div class="form-group" style="gap: 2px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label for="qualityRange" style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin: 0;">Quality</label>
+              <span id="qualityVal" style="font-size: 0.75rem; font-weight: 700; color: #60a5fa;">50%</span>
+            </div>
+            <input type="range" id="qualityRange" min="30" max="85" value="50" step="5" style="padding: 2px 0;">
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.22); border-radius: 8px; padding: 6px 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: #10b981; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="micCheck">
+              <span>🎙️ Stream Microphone Audio</span>
+            </label>
+            
+            <div id="micSettingsContainer" style="margin-top: 4px; display: none;">
+              <select id="micSelect" style="font-size: 0.76rem; padding: 3px 6px; width: 100%; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px;">
+                <option value="">Detecting microphones...</option>
+              </select>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                <span style="font-size: 0.65rem; color: var(--text-muted);">Level:</span>
+                <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                  <div id="micVuLevel" style="height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #eab308, #ef4444); border-radius: 3px; transition: width 0.06s ease-out;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Realtime Statistics -->
+        <div class="stats-card" style="margin: 0; padding: 8px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; background: #0f172a; border-radius: 8px; border: 1px solid var(--border); height: 100%; align-content: center;">
+          <div class="stat-item">
+            <span class="stat-label" style="font-size: 0.65rem;">Bitrate</span>
+            <span id="statBitrate" class="stat-value" style="font-size: 0.85rem;">0 Kbps</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label" style="font-size: 0.65rem;">Actual FPS</span>
+            <span id="statFps" class="stat-value" style="font-size: 0.85rem;">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label" style="font-size: 0.65rem;">Office PC</span>
+            <span id="statReceiver" class="stat-value" style="font-size: 0.85rem; color: var(--warning)">Waiting</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label" style="font-size: 0.65rem;">Sent Frames</span>
+            <span id="statFrames" class="stat-value" style="font-size: 0.85rem;">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // UI Elements
+    const preview = document.getElementById('preview');
+    const viewport = document.getElementById('viewport');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const pipBtn = document.getElementById('pipBtn');
+    const popoutBtn = document.getElementById('popoutBtn');
+    const actionBtnContainer = document.getElementById('actionBtnContainer');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const resolutionSelect = document.getElementById('resolutionSelect');
+    const fpsSelect = document.getElementById('fpsSelect');
+    const qualityRange = document.getElementById('qualityRange');
+    const qualityVal = document.getElementById('qualityVal');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    const overlayMsg = document.getElementById('overlayMsg');
+    const mirrorCheck = document.getElementById('mirrorCheck');
+    const micCheck = document.getElementById('micCheck');
+    const micSelect = document.getElementById('micSelect');
+    const micVuLevel = document.getElementById('micVuLevel');
+    const micSettingsContainer = document.getElementById('micSettingsContainer');
+
+    const statBitrate = document.getElementById('statBitrate');
+    const statFps = document.getElementById('statFps');
+    const statReceiver = document.getElementById('statReceiver');
+    const statFrames = document.getElementById('statFrames');
+
+    const roomSelect = document.getElementById('roomSelect');
+    const refreshRoomsBtn = document.getElementById('refreshRoomsBtn');
+    const customRoomContainer = document.getElementById('customRoomContainer');
+    const customRoomInput = document.getElementById('customRoomInput');
+    const roomOnlineBadge = document.getElementById('roomOnlineBadge');
+
+    // State Variables
+    let currentStream = null;
+    let isStreaming = false;
+    let encoderWorker = null;
+    let trackProcessor = null;
+    let trackReader = null;
+    let audioCtx = null;
+    let audioProcessor = null;
+    let fallbackTimer = null;
+    let antiThrottlePC1 = null;
+    let antiThrottlePC2 = null;
+    let popupPollInterval = null;
+    let pipWindowInstance = null;
+
+    // Web Worker: OffscreenCanvas JPEG encoding & persistent auto-reconnecting WebSocket
+    const workerScript = `
+      let ws = null;
+      let wsUrl = '';
+      let isStopped = false;
+      let reconnectTimer = null;
+
+      let offscreenCanvas = null;
+      let ctx = null;
+      let curWidth = 1280;
+      let curHeight = 720;
+      let curQuality = 0.50;
+      let minIntervalMs = 25; // 30 FPS default
+      let lastSentTime = 0;
+      let isEncoding = false;
+
+      let bytesThisSec = 0;
+      let framesThisSec = 0;
+      let totalFrames = 0;
+      let statsTimer = null;
+
+      function sendStats() {
+        const kbps = Math.round((bytesThisSec * 8) / 1024);
+        self.postMessage({
+          type: 'stats',
+          fps: framesThisSec,
+          bitrate: kbps,
+          totalFrames: totalFrames
+        });
+        bytesThisSec = 0;
+        framesThisSec = 0;
+      }
+
+      function connectWs() {
+        if (isStopped || !wsUrl) return;
+        if (ws) {
+          try { ws.close(); } catch(e) {}
+          ws = null;
+        }
+
+        try {
+          ws = new WebSocket(wsUrl);
+          ws.binaryType = 'arraybuffer';
+
+          ws.onopen = function() {
+            if (reconnectTimer) {
+              clearTimeout(reconnectTimer);
+              reconnectTimer = null;
+            }
+            self.postMessage({ type: 'ws_open' });
+            if (statsTimer) clearInterval(statsTimer);
+            statsTimer = setInterval(sendStats, 1000);
+          };
+
+          ws.onmessage = function(event) {
+            try {
+              if (typeof event.data === 'string') {
+                const m = JSON.parse(event.data);
+                if (m.event === 'request_keyframe' || m.event === 'sender_online') {
+                  self.postMessage({ type: 'receiver_status', online: true });
+                } else if (m.event === 'receiver_status') {
+                  self.postMessage({ type: 'receiver_status', online: m.online === true });
+                }
+              }
+            } catch(e) {}
+          };
+
+          ws.onclose = function() {
+            if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
+            self.postMessage({ type: 'ws_reconnecting' });
+            if (!isStopped && !reconnectTimer) {
+              reconnectTimer = setTimeout(connectWs, 1500);
+            }
+          };
+
+          ws.onerror = function() {};
+        } catch(err) {
+          if (!isStopped && !reconnectTimer) {
+            reconnectTimer = setTimeout(connectWs, 2000);
+          }
+        }
+      }
+
+      self.onmessage = async function(e) {
+        const msg = e.data;
+        if (!msg) return;
+
+        if (msg.type === 'init') {
+          isStopped = false;
+          wsUrl = msg.wsUrl;
+          curWidth = msg.width || 1280;
+          curHeight = msg.height || 720;
+          curQuality = (msg.quality || 50) / 100.0;
+          const fps = msg.fps || 30;
+          minIntervalMs = (1000.0 / fps) * 0.75;
+
+          try {
+            offscreenCanvas = new OffscreenCanvas(curWidth, curHeight);
+            ctx = offscreenCanvas.getContext('2d', { alpha: false, desynchronized: true });
+          } catch(err) {
+            self.postMessage({ type: 'error', message: 'OffscreenCanvas not supported' });
+            return;
+          }
+
+          connectWs();
+
+        } else if (msg.type === 'config') {
+          if (msg.quality !== undefined) curQuality = msg.quality / 100.0;
+          if (msg.fps !== undefined) minIntervalMs = (1000.0 / msg.fps) * 0.75;
+          if (msg.width && msg.height && (msg.width !== curWidth || msg.height !== curHeight)) {
+            curWidth = msg.width;
+            curHeight = msg.height;
+            offscreenCanvas = new OffscreenCanvas(curWidth, curHeight);
+            ctx = offscreenCanvas.getContext('2d', { alpha: false, desynchronized: true });
+          }
+
+        } else if (msg.type === 'frame') {
+          const frame = msg.frame;
+          const now = performance.now();
+
+          if (!ws || ws.readyState !== WebSocket.OPEN || isEncoding || (now - lastSentTime < minIntervalMs) || ws.bufferedAmount > 256 * 1024) {
+            if (frame && typeof frame.close === 'function') frame.close();
+            return;
+          }
+
+          isEncoding = true;
+          lastSentTime = now;
+
+          try {
+            ctx.drawImage(frame, 0, 0, curWidth, curHeight);
+            if (typeof frame.close === 'function') frame.close();
+
+            const blob = await offscreenCanvas.convertToBlob({ type: 'image/jpeg', quality: curQuality });
+            if (!blob || !ws || ws.readyState !== WebSocket.OPEN) {
+              isEncoding = false;
+              return;
+            }
+
+            const imgBuffer = await blob.arrayBuffer();
+            const headerSize = 12;
+            const packet = new Uint8Array(headerSize + imgBuffer.byteLength);
+            packet[0] = 0x56; packet[1] = 0x43; packet[2] = 0x41; packet[3] = 0x4D; // "VCAM"
+            packet[4] = 1; // 1 = JPEG
+            packet[5] = (curWidth >> 8) & 0xFF;
+            packet[6] = curWidth & 0xFF;
+            packet[7] = (curHeight >> 8) & 0xFF;
+            packet[8] = curHeight & 0xFF;
+
+            packet.set(new Uint8Array(imgBuffer), headerSize);
+            ws.send(packet.buffer);
+
+            bytesThisSec += packet.byteLength;
+            framesThisSec++;
+            totalFrames++;
+          } catch(err) {
+          } finally {
+            isEncoding = false;
+          }
+
+        } else if (msg.type === 'audio') {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            const pcmBuffer = msg.data;
+            const headerSize = 12;
+            const audioPkt = new Uint8Array(headerSize + pcmBuffer.byteLength);
+            audioPkt[0] = 0x41; audioPkt[1] = 0x43; audioPkt[2] = 0x41; audioPkt[3] = 0x4D; // "ACAM"
+            audioPkt[4] = 1; // PCM 16-bit 16kHz
+            audioPkt[5] = 16;
+            audioPkt[6] = 1; // Mono
+            audioPkt.set(new Uint8Array(pcmBuffer), headerSize);
+            ws.send(audioPkt.buffer);
+          }
+
+        } else if (msg.type === 'stop') {
+          isStopped = true;
+          if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+          if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
+          if (ws) {
+            try { ws.close(); } catch(e) {}
+            ws = null;
+          }
+          isEncoding = false;
+        }
+      };
+    `;
+
+    // Picture-in-Picture management
+    async function togglePictureInPicture() {
+      try {
+        if (pipWindowInstance && !pipWindowInstance.closed) {
+          pipWindowInstance.close();
+          pipWindowInstance = null;
+          pipBtn.textContent = '📌 Picture-in-Picture';
+          return;
+        }
+
+        // 1. Try modern Document Picture-in-Picture (Edge / Chrome)
+        if ('documentPictureInPicture' in window) {
+          const pipWin = await window.documentPictureInPicture.requestWindow({
+            width: 340,
+            height: 240,
+          });
+          pipWindowInstance = pipWin;
+
+          pipWin.document.body.style.cssText = 'margin:0; background:#0f172a; overflow:hidden; display:flex; flex-direction:column; width:100vw; height:100vh; font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; color:white; user-select:none;';
+
+          const pipVideo = document.createElement('video');
+          pipVideo.autoplay = true;
+          pipVideo.playsinline = true;
+          pipVideo.muted = true;
+          pipVideo.style.cssText = 'width:100%; height:calc(100% - 30px); object-fit:cover; background:#000;';
+          if (mirrorCheck.checked) {
+            pipVideo.style.transform = 'scaleX(-1)';
+          }
+          pipVideo.srcObject = currentStream;
+
+          const currentTarget = getTargetRoom();
+          const pipBar = document.createElement('div');
+          pipBar.style.cssText = 'height:30px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 10px; font-size:11px; border-top:1px solid #334155;';
+          pipBar.innerHTML = `<span id="pipStatus" style="color:#10b981; font-weight:700;">🟢 [${currentTarget.toUpperCase()}]</span><span id="pipFps" style="color:#94a3b8; font-weight:600;">30 FPS</span>`;
+
+          pipWin.document.body.appendChild(pipVideo);
+          pipWin.document.body.appendChild(pipBar);
+
+          pipBtn.textContent = '❌ Close Mini Window';
+
+          pipWin.addEventListener('pagehide', () => {
+            pipWindowInstance = null;
+            pipBtn.textContent = '📌 Picture-in-Picture';
+          });
+
+        } else if (document.pictureInPictureEnabled && preview.requestPictureInPicture) {
+          // 2. Native HTML5 video Picture-in-Picture fallback
+          if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+            pipBtn.textContent = '📌 Picture-in-Picture';
+          } else {
+            await preview.requestPictureInPicture();
+            pipBtn.textContent = '❌ Close Mini Window';
+          }
+        } else {
+          alert('Your browser does not support Picture-in-Picture mode. You can use the "Popout Window" button or webcam_sender.exe.');
+        }
+      } catch (err) {
+        console.warn('Error opening Picture-in-Picture:', err);
+      }
+    }
+
+    pipBtn.addEventListener('click', togglePictureInPicture);
+    viewport.addEventListener('dblclick', togglePictureInPicture);
+
+    if (preview) {
+      preview.addEventListener('leavepictureinpicture', () => {
+        pipBtn.textContent = '📌 Picture-in-Picture';
+      });
+    }
+
+    // Quality slider realtime label
+    qualityRange.addEventListener('input', () => {
+      qualityVal.textContent = qualityRange.value + '%';
+      if (encoderWorker && isStreaming) {
+        encoderWorker.postMessage({
+          type: 'config',
+          quality: parseInt(qualityRange.value, 10),
+          fps: parseInt(fpsSelect.value, 10)
+        });
+      }
+    });
+
+    fpsSelect.addEventListener('change', () => {
+      if (encoderWorker && isStreaming) {
+        encoderWorker.postMessage({
+          type: 'config',
+          fps: parseInt(fpsSelect.value, 10)
+        });
+      }
+    });
+
+    // Mirror checkbox
+    mirrorCheck.addEventListener('change', () => {
+      if (mirrorCheck.checked) {
+        preview.classList.remove('no-mirror');
+      } else {
+        preview.classList.add('no-mirror');
+      }
+      if (pipWindowInstance && !pipWindowInstance.closed) {
+        const pVid = pipWindowInstance.document.querySelector('video');
+        if (pVid) {
+          pVid.style.transform = mirrorCheck.checked ? 'scaleX(-1)' : 'scaleX(1)';
+        }
+      }
+    });
+
+    // Popout standalone window detection
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPopupMode = window.opener != null || window.name === 'VirtualCamPopup' || urlParams.has('popup');
+
+    if (isPopupMode) {
+      if (popoutBtn) popoutBtn.style.display = 'none';
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:0.75rem; color:#10b981; padding:4px 8px; background:rgba(16,185,129,0.1); border-radius:6px; border:1px solid rgba(16,185,129,0.3); font-weight:600;';
+      badge.textContent = '🪟 Standalone Window';
+      actionBtnContainer.appendChild(badge);
+    } else {
+      // Popout button handler
+      popoutBtn.addEventListener('click', () => {
+        stopStreaming();
+
+        setStatus('', 'In popout window');
+        overlayMsg.innerHTML = `
+          <div style="line-height: 1.6;">
+            <p style="font-weight: 700; font-size: 1.05rem; margin-bottom: 6px;">Webcam active in popout window</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">You can continue browsing or switch tabs without interruptions.</p>
+            <button id="reattachBtn" class="btn btn-primary" style="margin-top: 14px; width: auto; padding: 6px 18px;">
+              Restore to this tab
+            </button>
+          </div>
+        `;
+        overlayMsg.style.display = 'block';
+
+        const popupUrl = window.location.origin + window.location.pathname + '?popup=1&room=' + encodeURIComponent(getTargetRoom());
+        const pop = window.open(popupUrl, 'VirtualCamPopup', 'width=920,height=720,menubar=no,toolbar=no,location=no,status=no');
+
+        if (popupPollInterval) clearInterval(popupPollInterval);
+        popupPollInterval = setInterval(() => {
+          if (pop && pop.closed) {
+            clearInterval(popupPollInterval);
+            popupPollInterval = null;
+            startStreaming();
+          }
+        }, 1000);
+
+        const reattachBtn = document.getElementById('reattachBtn');
+        if (reattachBtn) {
+          reattachBtn.onclick = () => {
+            if (popupPollInterval) {
+              clearInterval(popupPollInterval);
+              popupPollInterval = null;
+            }
+            if (pop && !pop.closed) {
+              try { pop.close(); } catch(e) {}
+            }
+            startStreaming();
+          };
+        }
+      });
+    }
+
+    // Enumerate connected cameras and microphones, prioritizing physical USB devices
+    async function loadDevices() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        
+        // 1. Cameras
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        videoDevices.sort((a, b) => {
+          const isVirtA = /obs|virtual/i.test(a.label);
+          const isVirtB = /obs|virtual/i.test(b.label);
+          if (isVirtA && !isVirtB) return 1;
+          if (!isVirtA && isVirtB) return -1;
+          return 0;
+        });
+
+        const currentCam = cameraSelect.value;
+        cameraSelect.innerHTML = '';
+        if (videoDevices.length === 0) {
+          cameraSelect.innerHTML = '<option value="">Default system camera</option>';
+        } else {
+          videoDevices.forEach((dev, idx) => {
+            const opt = document.createElement('option');
+            opt.value = dev.deviceId;
+            opt.textContent = dev.label || `Camera ${idx + 1}`;
+            if (dev.deviceId === currentCam) opt.selected = true;
+            cameraSelect.appendChild(opt);
+          });
+        }
+
+        // 2. Microphones
+        const audioDevices = devices.filter(d => d.kind === 'audioinput');
+        if (micSelect) {
+          const currentMic = micSelect.value;
+          micSelect.innerHTML = '';
+          if (audioDevices.length === 0) {
+            micSelect.innerHTML = '<option value="">Default system microphone</option>';
+          } else {
+            audioDevices.forEach((dev, idx) => {
+              const opt = document.createElement('option');
+              opt.value = dev.deviceId;
+              opt.textContent = dev.label || `Microphone ${idx + 1}`;
+              if (dev.deviceId === currentMic) opt.selected = true;
+              micSelect.appendChild(opt);
+            });
+          }
+        }
+      } catch (err) {
+        cameraSelect.innerHTML = '<option value="">Default system camera</option>';
+        if (micSelect) micSelect.innerHTML = '<option value="">Default system microphone</option>';
+      }
+    }
+
+    loadDevices();
+
+    // Target PC (Room) management
+    function getTargetRoom() {
+      let val = roomSelect ? roomSelect.value : 'web03';
+      if (val === '__custom__') {
+        val = customRoomInput ? customRoomInput.value.trim().toLowerCase() : '';
+      }
+      return val || 'web03';
+    }
+
+    function setTargetRoom(roomName, restartIfStreaming = true) {
+      const clean = (roomName || 'web03').trim().toLowerCase();
+      localStorage.setItem('virtualcam_target_room', clean);
+
+      try {
+        const u = new URL(window.location.href);
+        u.searchParams.set('room', clean);
+        window.history.replaceState(null, '', u.toString());
+      } catch(e) {}
+
+      if (roomSelect) {
+        let found = false;
+        for (let i = 0; i < roomSelect.options.length; i++) {
+          if (roomSelect.options[i].value === clean) {
+            roomSelect.selectedIndex = i;
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          const opt = document.createElement('option');
+          opt.value = clean;
+          opt.textContent = `${clean} (Selected)`;
+          const customOpt = roomSelect.querySelector('option[value="__custom__"]');
+          if (customOpt) {
+            roomSelect.insertBefore(opt, customOpt);
+          } else {
+            roomSelect.appendChild(opt);
+          }
+          roomSelect.value = clean;
+        }
+      }
+
+      if (customRoomContainer) customRoomContainer.style.display = 'none';
+
+      if (restartIfStreaming && isStreaming) {
+        stopStreaming();
+        startStreaming();
+      } else {
+        pollRoomsStatus();
+      }
+    }
+
+    if (roomSelect) {
+      roomSelect.addEventListener('change', () => {
+        if (roomSelect.value === '__custom__') {
+          if (customRoomContainer) customRoomContainer.style.display = 'block';
+          if (customRoomInput) customRoomInput.focus();
+        } else {
+          if (customRoomContainer) customRoomContainer.style.display = 'none';
+          setTargetRoom(roomSelect.value, true);
+        }
+      });
+    }
+
+    if (customRoomInput) {
+      customRoomInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const val = customRoomInput.value.trim().toLowerCase();
+          if (val) {
+            setTargetRoom(val, true);
+          }
+        }
+      });
+
+      customRoomInput.addEventListener('blur', () => {
+        const val = customRoomInput.value.trim().toLowerCase();
+        if (val) {
+          setTargetRoom(val, true);
+        }
+      });
+    }
+
+    if (refreshRoomsBtn) {
+      refreshRoomsBtn.addEventListener('click', () => {
+        pollRoomsStatus();
+      });
+    }
+
+    async function pollRoomsStatus() {
+      try {
+        const statusUrl = window.location.pathname.startsWith('/cam') ? '/cam/status' : '/status';
+        const res = await fetch(statusUrl, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.rooms) return;
+
+        const currentTarget = getTargetRoom();
+        const roomsMap = data.rooms;
+        const activeTarget = roomsMap[currentTarget];
+        const recvCount = (activeTarget && activeTarget.receivers) ? activeTarget.receivers : 0;
+
+        if (roomOnlineBadge) {
+          if (recvCount > 0) {
+            roomOnlineBadge.textContent = `🟢 Online (${recvCount} ${recvCount === 1 ? 'service' : 'services'})`;
+            roomOnlineBadge.style.color = '#10b981';
+            roomOnlineBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+            roomOnlineBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+          } else {
+            roomOnlineBadge.textContent = '🟡 Waiting (0 active)';
+            roomOnlineBadge.style.color = '#f59e0b';
+            roomOnlineBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+            roomOnlineBadge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+          }
+        }
+
+        if (roomSelect) {
+          const currentVal = roomSelect.value;
+          for (const [rName, rInfo] of Object.entries(roomsMap)) {
+            if (rName === 'default') continue;
+            let opt = roomSelect.querySelector(`option[value="${rName}"]`);
+            const label = `${rName} ${rInfo.receivers > 0 ? `🟢 (${rInfo.receivers} online)` : '⚪ (offline)'}`;
+            if (opt) {
+              opt.textContent = label;
+            } else {
+              opt = document.createElement('option');
+              opt.value = rName;
+              opt.textContent = label;
+              const customOpt = roomSelect.querySelector('option[value="__custom__"]');
+              if (customOpt) {
+                roomSelect.insertBefore(opt, customOpt);
+              } else {
+                roomSelect.appendChild(opt);
+              }
+            }
+          }
+          if (currentVal && currentVal !== '__custom__') roomSelect.value = currentVal;
+        }
+      } catch(e) {}
+    }
+
+    const initialTargetRoom = urlParams.get('room') || localStorage.getItem('virtualcam_target_room') || 'web03';
+    setTargetRoom(initialTargetRoom, false);
+    pollRoomsStatus();
+    setInterval(pollRoomsStatus, 4000);
+
+    cameraSelect.addEventListener('change', async () => {
+      if (isStreaming) {
+        stopStreaming();
+        await startStreaming();
+      }
+    });
+
+    if (micSelect) {
+      micSelect.addEventListener('change', async () => {
+        if (isStreaming && micCheck && micCheck.checked) {
+          stopStreaming();
+          await startStreaming();
+        }
+      });
+    }
+
+    if (micCheck) {
+      micCheck.addEventListener('change', async () => {
+        if (micSettingsContainer) {
+          micSettingsContainer.style.display = micCheck.checked ? 'block' : 'none';
+        }
+        if (isStreaming) {
+          stopStreaming();
+          await startStreaming();
+        }
+      });
+    }
+
+    resolutionSelect.addEventListener('change', async () => {
+      if (isStreaming) {
+        stopStreaming();
+        await startStreaming();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (!isStreaming) {
+          startStreaming();
+        }
+      }, 500);
+    });
+
+    toggleBtn.addEventListener('click', async () => {
+      if (isStreaming) {
+        stopStreaming();
+      } else {
+        await startStreaming();
+      }
+    });
+
+    function setStatus(state, text) {
+      statusBadge.className = 'status-badge ' + state;
+      statusText.textContent = text;
+    }
+
+    function setupKeepAliveAudio() {
+      try {
+        if (!window.keepAliveAudio) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            const ctxA = new AudioCtx();
+            const osc = ctxA.createOscillator();
+            const gain = ctxA.createGain();
+            gain.gain.value = 0.00001;
+            osc.connect(gain);
+            gain.connect(ctxA.destination);
+            osc.start();
+            if (ctxA.state === 'suspended') {
+              ctxA.resume().catch(() => {});
+            }
+            window.keepAliveAudio = ctxA;
+          }
+        }
+        if (!window.silentAudioElem) {
+          const audio = document.createElement('audio');
+          audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+          audio.loop = true;
+          audio.volume = 0.01;
+          audio.play().catch(() => {});
+          window.silentAudioElem = audio;
+        }
+        if ('wakeLock' in navigator) {
+          navigator.wakeLock.request('screen').catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function enableAntiThrottlingLoopback(stream) {
+      try {
+        if (window.RTCPeerConnection) {
+          if (antiThrottlePC1) { try { antiThrottlePC1.close(); } catch (e) {} }
+          if (antiThrottlePC2) { try { antiThrottlePC2.close(); } catch (e) {} }
+
+          antiThrottlePC1 = new RTCPeerConnection();
+          antiThrottlePC2 = new RTCPeerConnection();
+          antiThrottlePC1.onicecandidate = e => e.candidate && antiThrottlePC2 && antiThrottlePC2.addIceCandidate(e.candidate).catch(() => {});
+          antiThrottlePC2.onicecandidate = e => e.candidate && antiThrottlePC1 && antiThrottlePC1.addIceCandidate(e.candidate).catch(() => {});
+          stream.getTracks().forEach(track => antiThrottlePC1.addTrack(track, stream));
+          antiThrottlePC1.createOffer().then(offer => antiThrottlePC1.setLocalDescription(offer))
+            .then(() => antiThrottlePC2.setRemoteDescription(antiThrottlePC1.localDescription))
+            .then(() => antiThrottlePC2.createAnswer())
+            .then(answer => antiThrottlePC2.setLocalDescription(answer))
+            .then(() => antiThrottlePC1.setRemoteDescription(antiThrottlePC2.localDescription))
+            .catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    async function startStreaming() {
+      try {
+        const deviceId = cameraSelect.value;
+        const resChoice = resolutionSelect.value;
+        const fps = parseInt(fpsSelect.value, 10) || 30;
+
+        let width = 1280;
+        let height = 720;
+        if (resChoice === '480') {
+          width = 854;
+          height = 480;
+        } else if (resChoice === '1080') {
+          width = 1920;
+          height = 1080;
+        }
+
+        let stream = null;
+        const wantAudio = micCheck ? micCheck.checked : false;
+        const micId = micSelect ? micSelect.value : null;
+
+        try {
+          const constraints = {
+            video: {
+              width: { ideal: width },
+              height: { ideal: height },
+              frameRate: { ideal: fps }
+            }
+          };
+          if (deviceId) {
+            constraints.video.deviceId = { ideal: deviceId };
+          }
+          if (wantAudio) {
+            constraints.audio = {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            };
+            if (micId) {
+              constraints.audio.deviceId = { ideal: micId };
+            }
+          } else {
+            constraints.audio = false;
+          }
+
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err1) {
+          console.warn('Fallback basic constraints...', err1);
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: wantAudio });
+          } catch(err2) {
+            console.warn('Fallback video only...', err2);
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          }
+        }
+
+        currentStream = stream;
+        preview.srcObject = currentStream;
+        overlayMsg.style.display = 'none';
+        isStreaming = true;
+
+        loadDevices();
+        setupKeepAliveAudio();
+        enableAntiThrottlingLoopback(currentStream);
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack && videoTrack.getSettings) {
+          const s = videoTrack.getSettings();
+          if (s.width && s.height) {
+            width = s.width;
+            height = s.height;
+          }
+        }
+
+        const currentTargetRoom = getTargetRoom();
+        const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        let wsPath = `/cam/ws?role=sender&room=${encodeURIComponent(currentTargetRoom)}`;
+        if (!window.location.pathname.startsWith('/cam')) {
+          wsPath = `/ws?role=sender&room=${encodeURIComponent(currentTargetRoom)}`;
+        }
+        const wsUrl = `${wsProto}//${window.location.host}${wsPath}`;
+
+        setStatus('waiting', `Connecting to ${currentTargetRoom}...`);
+
+        const blob = new Blob([workerScript], { type: 'application/javascript' });
+        encoderWorker = new Worker(URL.createObjectURL(blob));
+
+        encoderWorker.onmessage = function(e) {
+          const m = e.data;
+          if (!m) return;
+
+          if (m.type === 'ws_open') {
+            setStatus('waiting', `Waiting for ${currentTargetRoom}`);
+            toggleBtn.textContent = '⏹ Stop Webcam';
+            toggleBtn.className = 'btn btn-danger';
+            if (wantAudio && currentStream && currentStream.getAudioTracks().length > 0) {
+              startAudioStream();
+            }
+          } else if (m.type === 'receiver_status') {
+            if (m.online) {
+              statReceiver.textContent = `🟢 Connected (${currentTargetRoom})`;
+              statReceiver.style.color = 'var(--success)';
+              setStatus('streaming', `🟢 Streaming (${currentTargetRoom})`);
+              if (pipWindowInstance && !pipWindowInstance.closed) {
+                const pStat = pipWindowInstance.document.getElementById('pipStatus');
+                if (pStat) { pStat.textContent = `🟢 [${currentTargetRoom.toUpperCase()}] Active`; pStat.style.color = '#10b981'; }
+              }
+            } else {
+              statReceiver.textContent = `Waiting (${currentTargetRoom})`;
+              statReceiver.style.color = 'var(--warning)';
+              setStatus('waiting', `Waiting for ${currentTargetRoom}`);
+              if (pipWindowInstance && !pipWindowInstance.closed) {
+                const pStat = pipWindowInstance.document.getElementById('pipStatus');
+                if (pStat) { pStat.textContent = `⏳ [${currentTargetRoom.toUpperCase()}] Waiting`; pStat.style.color = '#f59e0b'; }
+              }
+            }
+          } else if (m.type === 'stats') {
+            statBitrate.textContent = `${m.bitrate} Kbps`;
+            statFps.textContent = m.fps;
+            statFrames.textContent = m.totalFrames.toLocaleString();
+            if (pipWindowInstance && !pipWindowInstance.closed) {
+              const pFps = pipWindowInstance.document.getElementById('pipFps');
+              if (pFps) pFps.textContent = `${m.fps} FPS`;
+            }
+          } else if (m.type === 'ws_reconnecting') {
+            setStatus('waiting', 'Reconnecting to relay...');
+            statReceiver.textContent = 'Reconnecting...';
+            statReceiver.style.color = 'var(--warning)';
+          } else if (m.type === 'ws_close') {
+            setStatus('waiting', 'Waiting for connection...');
+          }
+        };
+
+        encoderWorker.postMessage({
+          type: 'init',
+          wsUrl: wsUrl,
+          width: width,
+          height: height,
+          quality: parseInt(qualityRange.value, 10),
+          fps: fps
+        });
+
+        if (videoTrack && 'MediaStreamTrackProcessor' in window) {
+          try {
+            trackProcessor = new MediaStreamTrackProcessor({ track: videoTrack });
+            trackReader = trackProcessor.readable.getReader();
+
+            async function pumpTrackFrames() {
+              while (isStreaming && trackReader && encoderWorker) {
+                try {
+                  const { done, value: videoFrame } = await trackReader.read();
+                  if (done) break;
+                  if (!videoFrame) continue;
+
+                  encoderWorker.postMessage(
+                    { type: 'frame', frame: videoFrame },
+                    [videoFrame]
+                  );
+                } catch (err) {
+                  if (!isStreaming) break;
+                  await new Promise(r => setTimeout(r, 40));
+                }
+              }
+              if (isStreaming && videoTrack && videoTrack.readyState === 'live') {
+                try {
+                  trackProcessor = new MediaStreamTrackProcessor({ track: videoTrack });
+                  trackReader = trackProcessor.readable.getReader();
+                  pumpTrackFrames();
+                } catch(e) {
+                  startFallbackCapture(fps);
+                }
+              }
+            }
+
+            pumpTrackFrames();
+          } catch(err) {
+            console.warn('TrackProcessor fallback...', err);
+            startFallbackCapture(fps);
+          }
+        } else {
+          startFallbackCapture(fps);
+        }
+
+      } catch (err) {
+        console.error('Error starting webcam:', err);
+        alert('Unable to access webcam.\n\nPlease verify that the webcam is connected and not in use by another application.');
+      }
+    }
+
+    function startFallbackCapture(targetFps) {
+      const interval = Math.floor(1000.0 / targetFps);
+      if (fallbackTimer) clearInterval(fallbackTimer);
+
+      fallbackTimer = setInterval(async () => {
+        if (!isStreaming || !preview || preview.readyState < 2 || !encoderWorker) return;
+        try {
+          const bitmap = await createImageBitmap(preview);
+          encoderWorker.postMessage({ type: 'frame', frame: bitmap }, [bitmap]);
+        } catch (e) {}
+      }, interval);
+    }
+
+    function stopStreaming() {
+      isStreaming = false;
+
+      if (fallbackTimer) {
+        clearInterval(fallbackTimer);
+        fallbackTimer = null;
+      }
+      if (trackReader) {
+        try { trackReader.cancel(); } catch (e) {}
+        trackReader = null;
+      }
+      trackProcessor = null;
+
+      if (pipWindowInstance && !pipWindowInstance.closed) {
+        try { pipWindowInstance.close(); } catch(e) {}
+        pipWindowInstance = null;
+        pipBtn.textContent = '📌 Picture-in-Picture';
+      }
+
+      if (encoderWorker) {
+        try {
+          encoderWorker.postMessage({ type: 'stop' });
+          encoderWorker.terminate();
+        } catch (e) {}
+        encoderWorker = null;
+      }
+
+      if (antiThrottlePC1) {
+        try { antiThrottlePC1.close(); } catch (e) {}
+        antiThrottlePC1 = null;
+      }
+      if (antiThrottlePC2) {
+        try { antiThrottlePC2.close(); } catch (e) {}
+        antiThrottlePC2 = null;
+      }
+
+      if (audioProcessor) {
+        try { audioProcessor.disconnect(); } catch(e) {}
+        audioProcessor = null;
+      }
+      if (audioCtx) {
+        try { audioCtx.close(); } catch(e) {}
+        audioCtx = null;
+      }
+      if (micVuLevel) micVuLevel.style.width = '0%';
+
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
+      }
+
+      preview.srcObject = null;
+      overlayMsg.style.display = 'block';
+      overlayMsg.textContent = 'Webcam stopped. Click Start to begin.';
+      toggleBtn.textContent = '▶ Start Webcam';
+      toggleBtn.className = 'btn btn-primary';
+      setStatus('', 'Disconnected');
+      statReceiver.textContent = 'Waiting';
+      statReceiver.style.color = 'var(--warning)';
+      statBitrate.textContent = '0 Kbps';
+      statFps.textContent = '0';
+    }
+
+    function startAudioStream() {
+      try {
+        if (!currentStream) return;
+        const audioTracks = currentStream.getAudioTracks();
+        if (audioTracks.length === 0) return;
+        const audioTrack = audioTracks[0];
+
+        if (audioProcessor) {
+          try { audioProcessor.disconnect(); } catch(e) {}
+          audioProcessor = null;
+        }
+        if (audioCtx) {
+          try { audioCtx.close(); } catch(e) {}
+          audioCtx = null;
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass({ sampleRate: 16000 });
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const source = audioCtx.createMediaStreamSource(new MediaStream([audioTrack]));
+        audioProcessor = audioCtx.createScriptProcessor(1024, 1, 1);
+
+        let lastVu = 0;
+        audioProcessor.onaudioprocess = (e) => {
+          if (!isStreaming || !encoderWorker) return;
+          const input = e.inputBuffer.getChannelData(0);
+
+          let sumSquares = 0;
+          const pcm16 = new Int16Array(input.length);
+          for (let i = 0; i < input.length; i++) {
+            let s = Math.max(-1, Math.min(1, input[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            sumSquares += s * s;
+          }
+
+          encoderWorker.postMessage({ type: 'audio', data: pcm16.buffer }, [pcm16.buffer]);
+
+          const now = performance.now();
+          if (now - lastVu > 60 && micVuLevel) {
+            lastVu = now;
+            const rms = Math.sqrt(sumSquares / input.length);
+            const pct = Math.min(100, Math.round(rms * 400));
+            micVuLevel.style.width = pct + '%';
+          }
+        };
+
+        const silentGain = audioCtx.createGain();
+        silentGain.gain.value = 0;
+        source.connect(audioProcessor);
+        audioProcessor.connect(silentGain);
+        silentGain.connect(audioCtx.destination);
+      } catch (err) {
+        console.warn('Error starting audio stream:', err);
+      }
+    }
+  </script>
+</body>
+</html>

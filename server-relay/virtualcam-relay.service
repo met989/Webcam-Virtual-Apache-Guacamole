@@ -1,0 +1,19 @@
+[Unit]
+Description=VirtualCam Relay Server (Webcam & Audio Streaming Hub)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/virtual_webcam
+ExecStart=/opt/virtual_webcam/virtualcam-relay
+Restart=always
+RestartSec=5s
+
+# File descriptor limits and logging
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
