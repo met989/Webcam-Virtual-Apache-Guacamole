@@ -199,6 +199,12 @@ func main() {
 			}
 		}
 	}
+	if envURL := os.Getenv("VIRTUALCAM_RELAY_URL"); envURL != "" {
+		relayURL = envURL
+	}
+	if envRoom := os.Getenv("VIRTUALCAM_ROOM"); envRoom != "" {
+		roomName = envRoom
+	}
 	roomName = resolveRoomName(roomName)
 	log.Printf("[AudioService] Configuration: RelayURL=%s, Room=%s", relayURL, roomName)
 

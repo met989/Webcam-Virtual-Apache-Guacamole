@@ -615,26 +615,40 @@ func loadOrCreateConfig() Config {
 		Token:    "",
 	}
 
-	// 1. Controlla prima config.json nella cartella dell'eseguibile (distribuito da GPO)
+	// 1. Check config.json in executable directory (deployed via GPO)
+	foundGlobal := false
 	if exePath, err := os.Executable(); err == nil {
 		globalCfgPath := filepath.Join(filepath.Dir(exePath), "config.json")
 		if data, err := os.ReadFile(globalCfgPath); err == nil {
 			if err := json.Unmarshal(data, &cfg); err == nil && cfg.RelayURL != "" {
-				cfg.Room = resolveRoomName(cfg.Room)
-				return cfg
+				foundGlobal = true
 			}
 		}
 	}
 
-	// 2. Fallback su configurazione utente in %LOCALAPPDATA%
-	cfgPath := getConfigPath()
-	data, err := os.ReadFile(cfgPath)
-	if err == nil {
-		json.Unmarshal(data, &cfg)
-	} else {
-		d, _ := json.MarshalIndent(cfg, "", "  ")
-		_ = os.WriteFile(cfgPath, d, 0644)
+	// 2. Fallback to user configuration in %LOCALAPPDATA%
+	if !foundGlobal {
+		cfgPath := getConfigPath()
+		data, err := os.ReadFile(cfgPath)
+		if err == nil {
+			json.Unmarshal(data, &cfg)
+		} else {
+			d, _ := json.MarshalIndent(cfg, "", "  ")
+			_ = os.WriteFile(cfgPath, d, 0644)
+		}
 	}
+
+	// 3. Environment variable overrides (if set)
+	if envURL := os.Getenv("VIRTUALCAM_RELAY_URL"); envURL != "" {
+		cfg.RelayURL = envURL
+	}
+	if envRoom := os.Getenv("VIRTUALCAM_ROOM"); envRoom != "" {
+		cfg.Room = envRoom
+	}
+	if envToken := os.Getenv("VIRTUALCAM_TOKEN"); envToken != "" {
+		cfg.Token = envToken
+	}
+
 	cfg.Room = resolveRoomName(cfg.Room)
 	return cfg
 }

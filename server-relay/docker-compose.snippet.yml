@@ -1,28 +1,27 @@
 # ==============================================================================
-# SNIPPET PER /opt/guacamole/docker-compose.yml (o compose dedicato)
+# DOCKER COMPOSE SNIPPET FOR GUACAMOLE (or dedicated compose stack)
 # ==============================================================================
-# Incolla questo blocco sotto la voce "services:" nel tuo docker-compose.yml esistente.
+# Paste this block under "services:" in your existing docker-compose.yml
 # ==============================================================================
 
   virtualcam-relay:
     build:
-      context: /opt/virtual_webcam/server-relay
+      context: ./server-relay
       dockerfile: Dockerfile
     container_name: virtualcam-relay
     restart: unless-stopped
     environment:
       - PORT=9090
       - STATIC_DIR=/app/static
-      # - AUTH_TOKEN=segreto123 # Opzionale: decommenta se vuoi proteggere il flusso con token
+      # - AUTH_TOKEN=secret123 # Optional: uncomment to require an authentication token
     ports:
-      # Espone la porta solo su localhost sul server Debian: Nginx farà da reverse proxy sicuro
+      # Expose only on localhost: Nginx will handle HTTPS and WebSocket reverse proxy
       - "127.0.0.1:9090:9090"
     volumes:
-      # Monta i file statici della web-app in sola lettura per consentire modifiche senza rebuild
-      - /opt/virtual_webcam/server-relay/static:/app/static:ro
+      # Mount static files to allow updates without rebuilding the image
+      - ./server-relay/static:/app/static:ro
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-

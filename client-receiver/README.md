@@ -3,7 +3,7 @@
 High-performance video receiver in a single portable Windows executable (`webcam_receiver.exe`).
 
 ## Features:
-1. Connects securely to the relay server (`wss://guacamole.reload.local/cam/ws`).
+1. Connects securely to the relay server (`wss://guacamole.yourdomain.com/cam/ws`).
 2. Receives video stream and audio packets from your webcam sender.
 3. Feeds frames directly in real time into the DirectShow **`Virtual Webcam`** device.
 4. Any video conferencing application (Google Meet, Microsoft Teams, 3CX, Zoom, Chrome, Edge) sees the virtual webcam and microphone as native hardware devices.
@@ -32,8 +32,12 @@ Ensure the DirectShow virtual driver and VB-Audio virtual microphone are install
 Custom server or target room settings can be configured via `config.json` in `%LOCALAPPDATA%\VirtualWebcam` or in the application directory:
 ```json
 {
-  "relay_url": "wss://guacamole.reload.local/cam/ws",
+  "relay_url": "wss://guacamole.yourdomain.com/cam/ws",
   "room": "auto",
   "token": ""
 }
 ```
+Environment variables are also supported:
+* `VIRTUALCAM_RELAY_URL` (e.g. `wss://guacamole.yourdomain.com/cam/ws`)
+* `VIRTUALCAM_ROOM` (e.g. `pc-office-01`)
+* `VIRTUALCAM_TOKEN` (optional authentication token)

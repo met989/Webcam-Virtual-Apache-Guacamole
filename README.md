@@ -2,7 +2,7 @@
 
 An enterprise-grade, ultra-low-latency solution for bridging physical webcams and microphones from local client computers (e.g., home PCs) into remote desktop sessions (e.g., Apache Guacamole, RDP, VNC). 
 
-Virtual Webcam exposes the incoming remote stream as a native Windows DirectShow video capture filter (**"Virtual Webcam"**) and a virtual audio input device (**"Virtual Webcam Mic"** / VB-Audio Cable). Applications running on the remote workstation—including **Google Meet, Microsoft Teams, Zoom, 3CX, Chrome, Edge, and Firefox**—recognize the stream as hardware peripherals with zero configuration.
+Virtual Webcam exposes incoming remote video as a native Windows DirectShow capture filter (**"Virtual Webcam"**) and incoming remote audio as a virtual audio input device (**"Virtual Webcam Mic"** / VB-Audio Cable). Applications running on the remote workstation—including **Google Meet, Microsoft Teams, Zoom, 3CX, Chrome, Edge, and Firefox**—recognize the stream as hardware peripherals with zero configuration.
 
 ---
 
@@ -18,7 +18,7 @@ flowchart LR
         Mic --> Sender
     end
 
-    subgraph Server["🌐 Relay & Gateway Server (e.g. Apache Guacamole Server)"]
+    subgraph Server["🌐 Relay & Gateway Server (e.g. Apache Guacamole Host)"]
         Nginx["Nginx Reverse Proxy\n(HTTPS :443)"]
         Relay["virtualcam-relay Hub\n(Go / WebSocket :9090)"]
         Ext["Guacamole UI Extension\n(virtualcam-button.jar)"]
@@ -39,8 +39,8 @@ flowchart LR
     end
 
     Sender -- "Encrypted Stream\n(WSS /cam/ws)" --> Nginx
-    Relay -- "Low-Latency Stream\n(WSS /cam/ws)" --> Recv
-    Relay -- "Audio Stream\n(WSS /cam/ws)" --> AudioSvc
+    Relay -- "Low-Latency Video\n(WSS /cam/ws)" --> Recv
+    Relay -- "Synchronized Audio\n(WSS /cam/ws)" --> AudioSvc
     Ext -. "One-Click Tab\n(/cam/?room=<host>)" .-> Sender
 ```
 
@@ -55,7 +55,7 @@ flowchart LR
   * **Native Windows Tray Sender (`webcam_sender.exe`):** Standalone tray application with USB device selector, live preview, Picture-in-Picture (PiP), autostart, and tray minimization.
   * **Zero-Install Web Sender (`/cam/`):** Pure HTML5/JavaScript WebRTC/Canvas interface that works instantly in any modern browser without installing any software on the local client.
 * **Apache Guacamole Extension (`virtualcam-button.jar`):** Seamless floating camera icon (`📹`) pinned to the middle-right of the Guacamole interface. Automatically detects the active connection name/hostname and launches `/cam/?room=<room>` in a new tab with one click.
-* **Multi-Room Room Isolation:** Workstations automatically claim rooms based on their hostname (e.g., `web03`, `pc-john`), ensuring that streams never collide between different users on the network.
+* **Multi-Room Isolation:** Workstations automatically claim rooms based on their hostname (e.g., `web03`, `pc-john`), ensuring that streams never collide between different users on the network.
 * **Silent Enterprise GPO Deployment:** Automated batch scripts (`install_gpo.bat`) for Active Directory Group Policy distribution, handling driver installation, scheduled tasks, registry run keys, and unblocking downloaded binaries.
 * **Robust Diagnostic & Maintenance Tools:**
   * Integrated real-time tray metrics (FPS, resolution, bitrate, dropped frames).
@@ -67,7 +67,7 @@ flowchart LR
 ## 📁 Repository Structure
 
 ```text
-virtual_webcam/
+Webcam-Virtual-Apache-Guacamole/
 ├── client-audio-service/         # Background audio injection service (Go)
 │   ├── main.go                  # WebSocket audio consumer -> VB-Cable feeder
 │   └── webcam_audio_service.exe # Compiled 64-bit Windows binary
@@ -77,6 +77,7 @@ virtual_webcam/
 │   └── webcam_receiver.exe      # Compiled Windows tray application
 ├── client-sender/                # Native Windows webcam broadcaster (Go)
 │   ├── main.go                  # Camera capture & tray interface
+│   ├── start_webcam.bat         # Standalone app mode launcher
 │   └── webcam_sender.exe        # Compiled standalone sender binary
 ├── deploy_gpo/                   # Centralized Active Directory deployment bundle
 │   ├── config.json              # Client connection configuration
@@ -113,12 +114,12 @@ virtual_webcam/
 
 ### 1. Server Setup (Debian / Ubuntu / Apache Guacamole Host)
 
-#### Step 1: Install the Relay Service
+#### Option A: Native Linux Binary & Systemd
 1. Copy `server-relay/virtualcam-relay-linux` and `server-relay/static` to `/opt/virtual_webcam/` on your server:
    ```bash
    sudo mkdir -p /opt/virtual_webcam/static
    sudo cp server-relay/virtualcam-relay-linux /opt/virtual_webcam/virtualcam-relay
-   sudo cp server-relay/static/index.html /opt/virtual_webcam/static/
+   sudo cp -r server-relay/static/* /opt/virtual_webcam/static/
    sudo chmod +x /opt/virtual_webcam/virtualcam-relay
    ```
 2. Install and enable the `systemd` service:
@@ -132,14 +133,23 @@ virtual_webcam/
    sudo systemctl status virtualcam-relay
    ```
 
+#### Option B: Docker / Docker Compose
+1. Build and run via Docker Compose using the provided [`server-relay/docker-compose.snippet.yml`](server-relay/docker-compose.snippet.yml):
+   ```bash
+   cd server-relay
+   docker build -t virtualcam-relay:latest .
+   docker run -d --name virtualcam-relay --restart unless-stopped -p 127.0.0.1:9090:9090 virtualcam-relay:latest
+   ```
+
 #### Step 2: Configure Nginx Reverse Proxy
-Add the locations from [`server-relay/nginx-virtualcam.conf`](file:///server-relay/nginx-virtualcam.conf) inside your Guacamole Nginx `server { listen 443 ssl; ... }` block:
+Add the locations from [`server-relay/nginx-virtualcam.conf`](server-relay/nginx-virtualcam.conf) inside your Guacamole Nginx `server { listen 443 ssl; ... }` block:
 ```nginx
 location = /cam {
     return 301 /cam/;
 }
 
 location /cam/ {
+    # If relay runs natively on host and Nginx in Docker, replace with Docker gateway (e.g. 172.18.0.1:9090)
     proxy_pass http://127.0.0.1:9090/cam/;
     proxy_http_version 1.1;
     proxy_set_header Host $http_host;
@@ -187,7 +197,7 @@ sudo docker exec guac-nginx nginx -s reload
 
 #### Option A: Active Directory GPO (Recommended for Enterprises)
 1. Copy the `deploy_gpo` directory to your Domain Controller's share (e.g., `\\yourdomain.local\NETLOGON\deploy_gpo`).
-2. Edit `config.json` in the share to point to your relay URL:
+2. Edit `config.json` (or copy from `config.example.json`) in the share to point to your relay URL:
    ```json
    {
      "relay_url": "wss://guacamole.yourdomain.com/cam/ws",
@@ -224,9 +234,52 @@ Users at home have two effortless ways to send their webcam:
 
 ---
 
+## 🛠️ Building from Source
+
+### Prerequisites
+* Go 1.21 or higher installed (`go version`)
+* Git
+* Java Development Kit (JDK) or `zip` utility (for repacking the Guacamole extension)
+
+### 1. Build the Relay Hub (Linux)
+```bash
+cd server-relay
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o virtualcam-relay-linux main.go
+```
+
+### 2. Build the Video Receiver (`webcam_receiver.exe`)
+```powershell
+cd client-receiver
+go build -ldflags "-H windowsgui -s -w" -o webcam_receiver.exe main.go
+```
+
+### 3. Build the Audio Service (`webcam_audio_service.exe`)
+```powershell
+cd client-audio-service
+go build -ldflags "-H windowsgui -s -w" -o webcam_audio_service.exe main.go
+```
+
+### 4. Build the Webcam Sender (`webcam_sender.exe`)
+```powershell
+cd client-sender
+go build -ldflags "-H windowsgui -s -w" -o webcam_sender.exe main.go
+```
+
+### 5. Repack the Guacamole Extension (`virtualcam-button.jar`)
+```bash
+cd guacamole-extension
+# Using jar tool:
+jar -cvf virtualcam-button.jar guac-manifest.json css/ js/
+# Or using zip in PowerShell:
+Compress-Archive -Path guac-manifest.json, css, js -DestinationPath virtualcam-button.zip -Force
+Move-Item virtualcam-button.zip virtualcam-button.jar -Force
+```
+
+---
+
 ## ⚙️ Configuration Reference
 
-### `config.json` Options
+### Configuration Files & Parameters
 Located in the application directory or `%LOCALAPPDATA%\VirtualWebcam\config.json`:
 
 | Parameter | Type | Default | Description |
@@ -234,6 +287,19 @@ Located in the application directory or `%LOCALAPPDATA%\VirtualWebcam\config.jso
 | `relay_url` | `string` | `wss://.../cam/ws` | WebSocket endpoint on your reverse proxy or relay server |
 | `room` | `string` | `"auto"` | Workstation room name. `"auto"` uses the local Windows computer hostname |
 | `token` | `string` | `""` | Optional authentication security token |
+
+### Environment Variables
+All client binaries support environment variable overrides without touching configuration files:
+
+| Variable | Target Component | Description |
+|---|---|---|
+| `VIRTUALCAM_RELAY_URL` | Receiver & Audio Service | WebSocket endpoint (e.g. `wss://guacamole.yourdomain.com/cam/ws`) |
+| `VIRTUALCAM_ROOM` | Receiver & Audio Service | Custom room override (e.g. `pc-office-01`) |
+| `VIRTUALCAM_TOKEN` | Receiver & Audio Service | Authentication token |
+| `VIRTUALCAM_URL` | Sender | Target Web Sender URL |
+| `PORT` | Server Relay | HTTP/WebSocket listening port (default `9090`) |
+| `STATIC_DIR` | Server Relay | Custom directory for Web Sender static assets |
+| `AUTH_TOKEN` | Server Relay | Require token for incoming stream connections |
 
 ### URL Query Parameters (Web Sender)
 * `https://guacamole.yourdomain.com/cam/?room=web03`: Connects directly to room `web03`.
@@ -252,6 +318,7 @@ Located in the application directory or `%LOCALAPPDATA%\VirtualWebcam\config.jso
 
 ### Diagnostic Logs
 * **Workstation Receiver Log:** `%LOCALAPPDATA%\VirtualWebcam\webcam_receiver.log` or via tray menu (`Open Debug Log`).
+* **Workstation Audio Log:** `C:\Program Files\VirtualWebcam\webcam_audio.log`.
 * **Sender Log:** `%LOCALAPPDATA%\VirtualWebcamSender\webcam_sender.log`.
 * **Server Relay Log:** `/var/log/virtualcam-relay.log` or `journalctl -u virtualcam-relay -f`.
 

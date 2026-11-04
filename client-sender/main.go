@@ -149,6 +149,9 @@ func loadOrCreateConfig() Config {
 		d, _ := json.MarshalIndent(cfg, "", "  ")
 		_ = os.WriteFile(cfgPath, d, 0644)
 	}
+	if envURL := os.Getenv("VIRTUALCAM_URL"); envURL != "" {
+		cfg.CamURL = envURL
+	}
 	return cfg
 }
 

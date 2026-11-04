@@ -6,7 +6,7 @@ For the sender computer you can choose between two convenient modes:
 
 ### Option A: In Browser (Zero Installation)
 1. Open Google Chrome or Microsoft Edge.
-2. Navigate to: `https://guacamole.reload.local/cam`
+2. Navigate to: `https://guacamole.yourdomain.com/cam` (or click the 📹 button inside your Guacamole session).
 3. Click **"Start Webcam"** and minimize the tab.
 
 ---
