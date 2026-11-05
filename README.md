@@ -46,6 +46,24 @@ flowchart LR
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshot/2.png" alt="VirtualCam Web Sender Dashboard" width="820">
+  <br>
+  <em><b>1. Web Sender Interface:</b> Broadcast physical webcam & microphone directly from any browser with real-time controls, resolution/FPS presets, quality slider, and live bitrate metrics.</em>
+</p>
+
+<br>
+
+<p align="center">
+  <img src="screenshot/1.png" alt="Apache Guacamole Remote Session & Google Meet" width="820">
+  <br>
+  <em><b>2. Remote Guacamole Session:</b> Video conferencing apps (e.g. Google Meet, Microsoft Teams) recognizing the incoming stream as native "Virtual Webcam" hardware, with the floating one-click launcher button (📹) on the right edge.</em>
+</p>
+
+---
+
 ## ✨ Key Features
 
 * **Zero-Latency Streaming (<50ms):** Highly optimized WebSocket binary protocol using direct memory buffers and frame synchronization.
@@ -95,6 +113,9 @@ Webcam-Virtual-Apache-Guacamole/
 │   ├── css/cam-button.css       # Floating tab styling
 │   ├── js/cam-button.js         # Room detection & button injection script
 │   └── virtualcam-button.jar    # Compiled Guacamole extension JAR
+├── screenshot/                   # User interface & session screenshots
+│   ├── 1.png                     # Guacamole session with Google Meet & launcher button
+│   └── 2.png                     # Web Sender broadcasting dashboard
 ├── server-relay/                 # Central streaming hub & Web Sender
 │   ├── main.go                  # Go HTTP/WebSocket streaming server
 │   ├── Dockerfile               # Container build definition
