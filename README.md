@@ -353,5 +353,13 @@ To cleanly remove all drivers, services, scheduled tasks, and registry keys from
 
 ---
 
+## ☕ Support the Project
+
+If this virtual webcam and audio solution has been helpful for your Apache Guacamole environment or you appreciate open-source projects, consider supporting development by buying me a virtual coffee! ❤️
+
+[![Buy me a coffee on PayPal](https://img.shields.io/badge/Buy_me_a_coffee-PayPal-00457C.svg?style=for-the-badge&logo=paypal)](https://paypal.me/MatteoSacanna)
+
+---
+
 ## 📄 License
 This project incorporates open-source DirectShow capture filtering (based on UnityCapture by schellingb, MIT License) and VB-Audio Virtual Cable runtime packages. All custom Go relay, receiver, sender, and Guacamole extension code are distributed under the MIT License.
